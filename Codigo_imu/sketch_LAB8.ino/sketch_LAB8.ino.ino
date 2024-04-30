@@ -9,7 +9,7 @@
 #include <PID_v1.h>
 
 // Motor A connected between A01 and A02
-// Motor B connected between B01 and B02
+// Motor B connected between B01 and B02-
 #define ENA 10  // Enable/speed motor A
 #define IN1 9   // Direction A
 #define IN2 8   // Direction A
