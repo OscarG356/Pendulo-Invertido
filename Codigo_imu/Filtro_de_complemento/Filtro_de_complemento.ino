@@ -20,19 +20,19 @@ MPU6050 sensor;
 #define IN3 7   // Direction B
 #define IN4 6   // Direction B
 
-// PID variables
-double Setpoint, Input, Output;
-double Kp = 18, Ki = 0.5, Kd = 0.08;  // PID coefficients, tune these for your robot
-PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+  // PID variables
+  double Setpoint, Input, Output;
+  double Kp = 18, Ki = 0.5, Kd = 0.08;  // PID coefficients, tune these for your robot
+  PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
-// Valores RAW (sin procesar) del acelerometro y giroscopio en los ejes x,y,z
-int ax, ay, az;
-int gx, gy, gz;
+  // Valores RAW (sin procesar) del acelerometro y giroscopio en los ejes x,y,z
+  int ax, ay, az;
+  int gx, gy, gz;
 
-long tiempo_prev;
-float dt;
-float ang_x, ang_y;
-float ang_x_prev, ang_y_prev;
+  long tiempo_prev;
+  float dt;
+  float ang_x, ang_y;
+  float ang_x_prev, ang_y_prev;
 
 void setup() {
   Serial.begin(57600);    //Iniciando puerto serial

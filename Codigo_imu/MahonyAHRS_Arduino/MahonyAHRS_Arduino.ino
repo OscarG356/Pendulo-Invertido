@@ -15,6 +15,8 @@ References:
 #include<Wire.h>
 #include <math.h>
 
+#include <I2Cdev.h>
+#include <PID_v1.h>
 
 //---------------------------------------------------------------------------------------------------
 // Definitions  
@@ -406,9 +408,9 @@ References:
 
 
 // Transform raw data of accelerometer & gyroscope
-#define MPU6050_AXOFFSET 341
-#define MPU6050_AYOFFSET -19
-#define MPU6050_AZOFFSET 1443
+#define MPU6050_AXOFFSET 164
+#define MPU6050_AYOFFSET -67
+#define MPU6050_AZOFFSET 1445
 
 #define MPU6050_AXGAIN 4096.0 // AFS_SEL = 2, +/-8g, MPU6050_ACCEL_FS_8
 #define MPU6050_AYGAIN 4096.0 // AFS_SEL = 2, +/-8g, MPU6050_ACCEL_FS_8
@@ -422,8 +424,12 @@ References:
 #define MPU6050_GYGAIN 16.384 // FS_SEL = 3, +/-2000degree/s, MPU6050_GYRO_FS_2000
 #define MPU6050_GZGAIN 16.384 // FS_SEL = 3, +/-2000degree/s, MPU6050_GYRO_FS_2000
 
-// Blinking LED
-#define LED_PIN 13 // For Blinking LED
+#define ENA 10  // Enable/speed motor A
+#define IN1 4   // Direction A
+#define IN2 8   // Direction A
+#define ENB 5   // Enable/speed motor B
+#define IN3 7   // Direction B
+#define IN4 6   // Direction B
 
 
 //---------------------------------------------------------------------------------------------------
@@ -447,7 +453,11 @@ float sampleFreq = 0.0f;                              // integration interval fo
 uint32_t lastUpdate = 0, firstUpdate = 0;         // used to calculate integration interval
 uint32_t Now = 0;                                 // used to calculate integration interval
 
-bool blinkState = false; // LED Bliking for Pin13
+// PID variables
+double Setpoint, Input, Output;
+double Kp = 18, Ki = 0.5, Kd = 0.08;  // PID coefficients, tune these for your robot
+PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
+
 
 void setup() {
   
@@ -457,15 +467,25 @@ void setup() {
 
   // Self Test
   MPU6050SelfTest(SelfTest);
-  
+
   // Initialize MPU6050
   MPU6050_Init();
 
-  // Configure LED for output
-  pinMode(LED_PIN, OUTPUT);
-
   // Sampling Timer
   sampling_timer = micros(); 
+
+  // Initialize motor control pins
+  pinMode(ENA, OUTPUT);
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(ENB, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  // Set up PID controller
+  Setpoint = 0;  // Target pitch is 0 degrees (upright)
+  myPID.SetMode(AUTOMATIC);
+  myPID.SetOutputLimits(-205, 205);  // PWM limits
 }
 
 void loop() {
@@ -493,10 +513,53 @@ void loop() {
   Serial.print("\t");
   Serial.println(yaw);
 
-  // Blink LED to indicate activity
-  blinkState = !blinkState;
-  digitalWrite(LED_PIN, blinkState);
+  /*if(pitch < 2 && pitch > -2){
+    Kp = 20;
+    Ki = 200;
+    Kd = 2;
+  }
+  else if(pitch < 15 && pitch > -15){
+    Kp = 10;
+    Ki = 0.7;
+    Kd = 0.2;
+  }
+  else{
+    Kp = 12;
+    Ki = 0.3;
+    Kd = 0.8;
+  }*/
+
+    Kp = 12.5;
+    Ki = 7.6;
+    Kd = 1.275;
+
+  Input = pitch;
+
+  myPID.SetTunings(Kp,Ki,Kd);
+  myPID.Compute();
+
+  driveMotors(Output);
   
+}
+
+void driveMotors(int pwm) {
+  Serial.print("Pwm: \t");
+  Serial.println(pwm);
+  if (pwm > 0) {
+    analogWrite(ENA, pwm);
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+    analogWrite(ENB, pwm);
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+  } else {
+    analogWrite(ENA, -pwm);
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+    analogWrite(ENB, -pwm);
+    digitalWrite(IN3, HIGH);
+    digitalWrite(IN4, LOW);
+  }
 }
 
 void MPU6050_Init(){
