@@ -10,12 +10,12 @@
 
 // Motor A connected between A01 and A02
 // Motor B connected between B01 and B02-
-#define ENA 10  // Enable/speed motor A
-#define IN1 9   // Direction A
-#define IN2 8   // Direction A
+#define ENA 6  // Enable/speed motor A
+#define IN1 3   // Direction A
+#define IN2 4   // Direction A
 #define ENB 5   // Enable/speed motor B
 #define IN3 7   // Direction B
-#define IN4 6   // Direction B
+#define IN4 10   // Direction B
 
 // MPU6050 object
 Adafruit_MPU6050 mpu;
@@ -53,12 +53,8 @@ void setup() {
 }
 
 void loop() {
-  sensors_event_t a, g, temp;
-  mpu.getEvent(&a, &g, &temp);
-
-  Input = g.gyro.y;  // Assuming 'y' is the axis of the pitch
-  myPID.Compute();
-
+  delay(1000);
+  Output = 122;
   driveMotors(Output);
 }
 

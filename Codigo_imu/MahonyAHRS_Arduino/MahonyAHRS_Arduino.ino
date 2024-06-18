@@ -12,7 +12,7 @@ References:
 
 //---------------------------------------------------------------------------------------------------
 
-#include<Wire.h>
+#include <Wire.h>
 #include <math.h>
 
 #include <I2Cdev.h>
@@ -410,17 +410,17 @@ References:
 
 
 // Transform raw data of accelerometer & gyroscope
-#define MPU6050_AXOFFSET 375
-#define MPU6050_AYOFFSET -166
-#define MPU6050_AZOFFSET 1431
+#define MPU6050_AXOFFSET 37
+#define MPU6050_AYOFFSET -13
+#define MPU6050_AZOFFSET 9
 
 #define MPU6050_AXGAIN 4096.0 // AFS_SEL = 2, +/-8g, MPU6050_ACCEL_FS_8
 #define MPU6050_AYGAIN 4096.0 // AFS_SEL = 2, +/-8g, MPU6050_ACCEL_FS_8
 #define MPU6050_AZGAIN 4096.0 // AFS_SEL = 2, +/-8g, MPU6050_ACCEL_FS_8
 
 #define MPU6050_GXOFFSET -27
-#define MPU6050_GYOFFSET -24
-#define MPU6050_GZOFFSET -67
+#define MPU6050_GYOFFSET -41
+#define MPU6050_GZOFFSET -5
 
 #define MPU6050_GXGAIN 16.384 // FS_SEL = 3, +/-2000degree/s, MPU6050_GYRO_FS_2000
 #define MPU6050_GYGAIN 16.384 // FS_SEL = 3, +/-2000degree/s, MPU6050_GYRO_FS_2000
@@ -451,25 +451,35 @@ uint32_t Now = 0;                                 // used to calculate integrati
 //---------------------------------------------------------------------------------------------------
 
 // Motors
+// Motor A connected between A01 and A02
+// Motor B connected between B01 and B02
+//-----------------Control de Motores
 #define ENA 10  // Enable/speed motor A
 #define IN1 4   // Direction A
 #define IN2 8   // Direction A
 #define ENB 5   // Enable/speed motor B
 #define IN3 7   // Direction B
 #define IN4 6   // Direction B
+/*
+#define ENA 10  // Enable/speed motor A
+#define IN1 4   // Direction A
+#define IN2 8   // Direction A
+#define ENB 5   // Enable/speed motor B
+#define IN3 7   // Direction B
+#define IN4 6   // Direction B*/
 
-double motorSpeedFactorLeft = 0.9;
-double motorSpeedFactorRight = 0.7;
-int MIN_ABS_SPEED = 60;
+double motorSpeedFactorLeft = 0.7;
+double motorSpeedFactorRight = 0.9;
+int MIN_ABS_SPEED = 70;
 LMotorController motorController(ENA, IN1, IN2, ENB, IN4, IN3, motorSpeedFactorLeft, motorSpeedFactorRight);
-
+int Output = 0;
 //---------------------------------------------------------------------------------------------------
+int i = 0;
+int j = 0;
 
-// PID variables
-double Setpoint, Input, Output;
-double Kp = 4, Ki = 80, Kd = 0.2;  // PID coefficients, tune these for your robot
-PID myPID(&Input, &Output, &Setpoint, Kp, Ki, Kd, DIRECT);
 
+
+unsigned long tiempo = 0;
 
 //---------------------------------------------------------------------------------------------------
 //---------------------------------------------------------------------------------------------------
@@ -496,14 +506,12 @@ void setup() {
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
 
-  // Set up PID controller
-  Setpoint = 0;  // Target pitch is 0 degrees (upright)
-  myPID.SetMode(AUTOMATIC);
-  myPID.SetOutputLimits(-255, 255);  // PWM limits
+  
+
 }
 
 void loop() {
-
+  tiempo = millis();
   // Get raw data
   mpu6050_GetData();
 
@@ -519,46 +527,27 @@ void loop() {
 
   // Value of Roll, Pitch, Yaw
   mpu6050_getRollPitchYaw();
-
   // Print Roll, Pitch, Yaw to Serial Monitor
-  Serial.print(roll);
-  Serial.print("\t");
-  Serial.print(pitch);
-  Serial.print("\t");
-  Serial.println(yaw);
-
-  if (pitch < 10 && pitch > -10){
-    Kp = 15;
-    Ki = 300;
-    Kd = 3.2;
-    myPID.SetOutputLimits(-195,195);
-  }
-  else if (pitch > 45 || pitch <-40){
-    myPID.SetOutputLimits(-5, 5);
-  }
-  else{
-    Kp = 70;
-    Ki = 390;
-    Kd = 6;
-    myPID.SetOutputLimits(-255,255);
+  j += 1;
+  if( j>300) {
+    i += 1;
+    if ( i > 100) {
+      Output = 0;
+      driveMotors(0);
+    } else {
+      Output = -255;
+      driveMotors(Output);
+    }
+    Serial.print(tiempo);Serial.print(";");Serial.print(pitch);Serial.print(";");Serial.print(Output);
+    Serial.println();
   }
 
 
-  Input = pitch;
-
-  myPID.SetTunings(Kp,Ki,Kd);
-  myPID.Compute();
-
-  //driveMotors(Output);
-  Serial.print("Output: \t");
-  Serial.println(Output);
-  motorController.move(Output, MIN_ABS_SPEED);
-  delay(100);
+  delay (10);
 }
 
+
 void driveMotors(int pwm) {
-  Serial.print("Pwm: \t");
-  Serial.println(pwm);
   if (pwm > 0) {
     analogWrite(ENA, pwm);
     digitalWrite(IN1, HIGH);
